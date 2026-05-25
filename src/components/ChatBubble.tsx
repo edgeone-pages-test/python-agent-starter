@@ -85,7 +85,7 @@ export default React.memo(function ChatBubble({ message }: Props) {
           {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
-      {isUser && <div className={`${styles.avatar} ${styles.userAvatar}`}>你</div>}
+      {isUser && <div className={`${styles.avatar} ${styles.userAvatar}`}>U</div>}
     </div>
   );
 });

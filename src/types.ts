@@ -3,7 +3,7 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  images?: string[];  // base64 图片数据列表（不含 data URI 前缀）
+  images?: string[];  // base64 image data list (without data URI prefix)
 }
 
 export interface ToolLampState {

@@ -36,19 +36,19 @@ from .._tools import build_tools, ToolRegistry
 logger = create_logger("chat")
 
 SYSTEM_PROMPT = (
-    "你是一个运行在 EdgeOne 沙箱环境中的助手。\n"
-    "你可以使用以下 EdgeOne 平台工具：\n"
-    "- commands: 在沙箱中执行 shell 命令（例如 date、ls、uname、curl 等）。\n"
-    "  参数：cmd（必填，要执行的命令），cwd（可选，工作目录）。\n"
-    "- files: 在沙箱中进行文件操作，包括 read、write、list、exists、remove、makeDir。\n"
-    "  参数：op（必填，操作类型），path（多数操作必填，文件或目录路径），content（write 时使用）。\n"
-    "- code_interpreter: 在隔离解释器中运行代码。\n"
-    "  参数：language（例如 python、javascript、bash），code（要执行的源码）。\n"
-    "- browser: 与网页交互，包括 fetch、screenshot、click、type、evaluate。\n"
-    "  参数：op（必填，操作类型），url（fetch 使用），selector、text、script。\n\n"
-    "当工具能够帮助你更具体、准确地回答用户问题时，请主动使用工具。\n"
-    "一次只调用一个工具。不要模拟或伪造工具输出，必须实际调用工具获取结果。\n"
-    "不要使用上述列表之外的任何工具。"
+    "You are a helpful assistant running inside an EdgeOne sandbox environment.\n"
+    "You have access to these EdgeOne platform tools:\n"
+    "- commands: execute shell commands in the sandbox (e.g. date, ls, uname, curl).\n"
+    "  Parameters: cmd (required, the command to execute), cwd (optional, working directory).\n"
+    "- files: file operations in the sandbox — read, write, list, exists, remove, makeDir.\n"
+    "  Parameters: op (required), path (required for most ops), content (for write).\n"
+    "- code_interpreter: run code in an isolated interpreter.\n"
+    "  Parameters: language (e.g. python, javascript, bash), code (source code to execute).\n"
+    "- browser: interact with web pages — fetch, screenshot, click, type, evaluate.\n"
+    "  Parameters: op (required), url (for fetch), selector, text, script.\n\n"
+    "Use tools whenever they help answer the user's question concretely.\n"
+    "Call tools ONE AT A TIME. Do NOT simulate or fake tool outputs — actually call the tool.\n"
+    "Do NOT use any tools other than those listed above."
 )
 
 # Maximum number of tool call rounds to prevent infinite loops
@@ -85,7 +85,7 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
         return
 
     if len(message) > MAX_MESSAGE_LENGTH:
-        yield sse_event("error", {"message": f"消息长度超过限制 ({MAX_MESSAGE_LENGTH} 字符)"})
+        yield sse_event("error", {"message": f"Message too long (max {MAX_MESSAGE_LENGTH} characters)"})
         yield sse_event("done", {})
         return
 
@@ -269,14 +269,14 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
             "error.type": type(e).__name__,
             "error.message": str(e),
         })
-        yield sse_event("error", {"message": "LLM 服务请求失败，请稍后重试"})
+        yield sse_event("error", {"message": "LLM service request failed, please try again later"})
     except Exception as e:
         logger.error(f"[handler] unexpected error: {type(e).__name__}: {e}")
         context.tracer.set_attributes({
             "error.type": type(e).__name__,
             "error.message": str(e),
         })
-        yield sse_event("error", {"message": "服务内部错误"})
+        yield sse_event("error", {"message": "Internal server error"})
 
     # ── Tracer: save assistant response ──
     if assistant_content:

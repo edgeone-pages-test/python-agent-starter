@@ -71,7 +71,7 @@ export default function CodeViewer() {
 
           {/* ── 1. EdgeOne Store ── */}
           <L n={13}>
-            <I /><Cmt t="# 1. EdgeOne Store：读取历史 + 保存用户消息" />
+            <I /><Cmt t="# 1. EdgeOne Store: load history + save user message" />
           </L>
           <L n={14}>
             <I /><Va t="session" /><Op t=" = " /><Ty t="ChatSession" /><Op t="(" /><Va t="store" /><Op t=")" />
@@ -104,7 +104,7 @@ export default function CodeViewer() {
 
           {/* ── 2. EdgeOne Tools ── */}
           <L n={24}>
-            <I /><Cmt t="# 2. EdgeOne Tools → function calling schema" />
+            <I /><Cmt t="# 2. EdgeOne Tools -> function calling schema" />
           </L>
           <L n={25}>
             <I /><Va t="tool_registry" /><Op t=" = " /><Fn t="build_tools" /><Op t="(" /><Va t="context" /><Op t=")" />
@@ -126,7 +126,7 @@ export default function CodeViewer() {
 
           {/* ── 3. httpx call ── */}
           <L n={32}>
-            <I /><Cmt t="# 3. httpx 调用 OpenAI-compatible API" />
+            <I /><Cmt t="# 3. httpx call to OpenAI-compatible API" />
           </L>
           <L n={33}>
             <I /><Dec t="async " /><Kw t="with " /><Va t="httpx" /><Op t="." /><Ty t="AsyncClient" /><Op t="(" /><Va t="timeout" /><Op t="=" /><Va t="300" /><Op t=") " /><Kw t="as " /><Va t="client" /><Op t=":" />
@@ -150,7 +150,7 @@ export default function CodeViewer() {
 
           {/* ── 4. Tool calling ── */}
           <L n={40}>
-            <I /><Cmt t="# 4. Tool calling：模型返回 tool_calls → 调用沙箱工具" />
+            <I /><Cmt t="# 4. Tool calling: model returns tool_calls -> execute sandbox tools" />
           </L>
           <L n={41}>
             <I /><Va t="assistant_msg" /><Op t=" = " /><Va t="resp" /><Op t="." /><Fn t="json" /><Op t='()["choices"][0]["message"]' />
@@ -169,7 +169,7 @@ export default function CodeViewer() {
             <I level={3} /><Va t="args" /><Op t=" = " /><Va t="tc" /><Op t='["function"]["arguments"]' />
           </L>
           <L n={47}>
-            <I level={3} /><Cmt t="# 调用 EdgeOne 沙箱工具" />
+            <I level={3} /><Cmt t="# Execute EdgeOne sandbox tool" />
           </L>
           <L n={48}>
             <I level={3} /><Va t="tool_result" /><Op t=" = " /><Dec t="await " /><Va t="tool_registry" /><Op t="." /><Fn t="execute" /><Op t="(" /><Va t="name" /><Op t=", " /><Va t="args" /><Op t=")" />
@@ -190,7 +190,7 @@ export default function CodeViewer() {
 
           {/* ── 5. Save & return ── */}
           <L n={54}>
-            <I /><Cmt t="# 5. EdgeOne Store：保存助手回复，供 /history 恢复" />
+            <I /><Cmt t="# 5. EdgeOne Store: save assistant reply for /history restore" />
           </L>
           <L n={55}>
             <I /><Dec t="await " /><Va t="session" /><Op t="." /><Fn t="save_assistant_message" /><Op t="(" /><Va t="conversation_id" /><Op t=", " /><Va t="assistant_text" /><Op t=")" />

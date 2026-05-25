@@ -8,10 +8,10 @@ import CodeViewer from './components/CodeViewer';
 import styles from './App.module.css';
 
 const INITIAL_LAMPS: ToolLampState[] = [
-  { id: 'commands',         label: '终端命令', icon: '⌨️', active: false, animKey: 0 },
-  { id: 'files',            label: '文件操作', icon: '📁', active: false, animKey: 0 },
-  { id: 'code_interpreter', label: '代码执行', icon: '🐍', active: false, animKey: 0 },
-  { id: 'browser',          label: '浏览器',   icon: '🌐', active: false, animKey: 0 },
+  { id: 'commands',         label: 'Commands', icon: '⌨️', active: false, animKey: 0 },
+  { id: 'files',            label: 'Files', icon: '📁', active: false, animKey: 0 },
+  { id: 'code_interpreter', label: 'Code Runner', icon: '🐍', active: false, animKey: 0 },
+  { id: 'browser',          label: 'Browser',   icon: '🌐', active: false, animKey: 0 },
 ];
 
 const CONVERSATION_ID_STORAGE_KEY = 'eo_conversation_id';
@@ -25,7 +25,7 @@ function getOrCreateConversationId(): string {
   return conversationId;
 }
 
-// ✅ 模块级去重标记 —— 脱离 React 生命周期，StrictMode 无法干扰
+// Module-level dedup flag — outside React lifecycle, unaffected by StrictMode
 let _historyFetchInFlight = false;
 
 export default function App() {
@@ -132,7 +132,7 @@ export default function App() {
       onDone: finishStream,
 
       onError() {
-        updateBotMessage(content => content || '⚠️ 请求失败，请检查后端服务是否启动。');
+        updateBotMessage(content => content || 'Request failed. Please check if the backend service is running.');
         finishStream();
       },
     }, conversationIdRef.current);
@@ -155,25 +155,25 @@ export default function App() {
   }, []);
 
   const handleStop = useCallback(() => {
-    // 1. 立即中断前端 SSE 读取
+    // 1. Immediately abort frontend SSE read
     if (abortCtrlRef.current) {
       abortCtrlRef.current.abort();
       abortCtrlRef.current = null;
     }
 
-    // 2. 捕获当前 botMsgId，防止异步回调更新到错误的消息
+    // 2. Capture current botMsgId to prevent async callbacks updating wrong message
     const stoppedMsgId = botMsgIdRef.current;
 
-    // 3. 前端立即显示已中断（乐观 UI，不等后端）
-    updateBotMessage(content => content ? content + '\n\n⏹ *已停止生成*' : '⏹ *已停止生成*');
+    // 3. Optimistic UI: show stopped immediately without waiting for backend
+    updateBotMessage(content => content ? content + '\n\n⏹ *Generation stopped*' : '⏹ *Generation stopped*');
     setLoading(false);
 
-    // 4. 后端异步执行中断，失败时提示用户（使用捕获的 ID 而非当前 ref）
+    // 4. Backend abort async — notify user on failure (use captured ID, not current ref)
     stopAgent(conversationIdRef.current).then(ok => {
       if (!ok) {
         setMessages(prev => prev.map(m =>
           m.id === stoppedMsgId
-            ? { ...m, content: m.content + '\n\n⚠️ 后端中断请求失败，服务端可能仍在运行。' }
+            ? { ...m, content: m.content + '\n\n Backend abort request failed. The server may still be running.' }
             : m
         ));
       }
@@ -197,7 +197,7 @@ export default function App() {
               <span className={styles.logo}>⬡</span>
               <div>
                 <p className={styles.title}>Agent Chat</p>
-                <p className={styles.subtitle}>运行在 EdgeOne Pages 上，支持会话记忆、沙箱工具调用</p>
+                <p className={styles.subtitle}>Running on EdgeOne Pages with session memory and sandbox tools</p>
               </div>
             </div>
             <ToolIndicators lamps={lamps} />
