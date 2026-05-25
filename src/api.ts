@@ -189,14 +189,19 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
  * The target conversation_id is passed only via body.
  */
 export async function stopAgent(conversationId?: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(API.chatStop, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ conversation_id: conversationId }),
+      signal: controller.signal,
     });
     return res.ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeout);
   }
 }

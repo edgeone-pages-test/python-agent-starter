@@ -7,7 +7,10 @@ session interface for conversation history persistence.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
+
+_log = logging.getLogger("session")
 
 
 class ChatSession:
@@ -26,7 +29,8 @@ class ChatSession:
                 order="asc",
             )
             return self._store.to_openai_input(messages)
-        except Exception:
+        except Exception as e:
+            _log.error("Failed to get history for %s: %s", conversation_id, e)
             return []
 
     async def save_user_message(self, conversation_id: str, content: str) -> str:
@@ -38,5 +42,5 @@ class ChatSession:
     async def clear(self, conversation_id: str) -> None:
         try:
             await self._store.clear_messages(conversation_id)
-        except Exception:
-            pass
+        except Exception as e:
+            _log.error("Failed to clear history for %s: %s", conversation_id, e)

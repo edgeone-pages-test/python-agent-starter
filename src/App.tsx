@@ -37,6 +37,7 @@ export default function App() {
   const botMsgIdRef = useRef<string>('');
   const abortCtrlRef = useRef<AbortController | null>(null);
   const conversationIdRef = useRef<string>(getOrCreateConversationId());
+  const lampTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     if (_historyFetchInFlight) return;
@@ -112,11 +113,16 @@ export default function App() {
               : l
           )
         );
-        setTimeout(() => {
+        // Clear any existing timer for this tool before setting a new one
+        const existingTimer = lampTimersRef.current.get(toolName);
+        if (existingTimer !== undefined) clearTimeout(existingTimer);
+        const timer = setTimeout(() => {
           setLamps(prev =>
             prev.map(l => (l.id === toolName ? { ...l, active: false } : l))
           );
+          lampTimersRef.current.delete(toolName);
         }, 1000);
+        lampTimersRef.current.set(toolName, timer);
       },
 
       onImage(base64) {
@@ -135,6 +141,12 @@ export default function App() {
   }, [updateBotMessage, appendBotImage, finishStream]);
 
   const handleClearHistory = useCallback(() => {
+    // Abort any in-flight stream before resetting state
+    if (abortCtrlRef.current) {
+      abortCtrlRef.current.abort();
+      abortCtrlRef.current = null;
+    }
+    setLoading(false);
     localStorage.removeItem(CONVERSATION_ID_STORAGE_KEY);
     const newId = crypto.randomUUID();
     localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, newId);
@@ -149,14 +161,21 @@ export default function App() {
       abortCtrlRef.current = null;
     }
 
-    // 2. 前端立即显示已中断（乐观 UI，不等后端）
+    // 2. 捕获当前 botMsgId，防止异步回调更新到错误的消息
+    const stoppedMsgId = botMsgIdRef.current;
+
+    // 3. 前端立即显示已中断（乐观 UI，不等后端）
     updateBotMessage(content => content ? content + '\n\n⏹ *已停止生成*' : '⏹ *已停止生成*');
     setLoading(false);
 
-    // 3. 后端异步执行中断，失败时提示用户
+    // 4. 后端异步执行中断，失败时提示用户（使用捕获的 ID 而非当前 ref）
     stopAgent(conversationIdRef.current).then(ok => {
       if (!ok) {
-        updateBotMessage(content => content + '\n\n⚠️ 后端中断请求失败，服务端可能仍在运行。');
+        setMessages(prev => prev.map(m =>
+          m.id === stoppedMsgId
+            ? { ...m, content: m.content + '\n\n⚠️ 后端中断请求失败，服务端可能仍在运行。' }
+            : m
+        ));
       }
     });
   }, [updateBotMessage]);

@@ -53,6 +53,7 @@ SYSTEM_PROMPT = (
 
 # Maximum number of tool call rounds to prevent infinite loops
 MAX_TOOL_ROUNDS = 10
+MAX_MESSAGE_LENGTH = 10000
 
 
 def sse_event(event: str, data: dict) -> str:
@@ -80,6 +81,11 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
 
     if not message:
         yield sse_event("error", {"message": "'message' is required"})
+        yield sse_event("done", {})
+        return
+
+    if len(message) > MAX_MESSAGE_LENGTH:
+        yield sse_event("error", {"message": f"消息长度超过限制 ({MAX_MESSAGE_LENGTH} 字符)"})
         yield sse_event("done", {})
         return
 
@@ -257,10 +263,14 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
                         "content": tool_result,
                     })
 
-    except httpx.HTTPError as e:
-        logger.error(f"[handler] httpx error: {e}")
+    except (httpx.HTTPError, httpx.StreamError) as e:
+        logger.error(f"[handler] httpx error: {type(e).__name__}: {e}")
         context.tracer.record_exception(e)
-        yield sse_event("error", {"message": f"Request failed: {e}"})
+        yield sse_event("error", {"message": "LLM 服务请求失败，请稍后重试"})
+    except Exception as e:
+        logger.error(f"[handler] unexpected error: {type(e).__name__}: {e}")
+        context.tracer.record_exception(e)
+        yield sse_event("error", {"message": "服务内部错误"})
 
     # ── Tracer: save assistant response ──
     if assistant_content:

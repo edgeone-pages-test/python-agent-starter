@@ -82,4 +82,10 @@ if _cert_file and os.path.isfile(_cert_file):
     _ssl_ctx = ssl.create_default_context(cafile=_cert_file)
     ssl_verify: ssl.SSLContext | bool = _ssl_ctx
 else:
-    ssl_verify = False
+    import warnings
+    warnings.warn(
+        "No valid CA bundle found. SSL verification will use Python/httpx system defaults. "
+        "If you see certificate errors, install certifi or set SSL_CERT_FILE.",
+        stacklevel=2,
+    )
+    ssl_verify: ssl.SSLContext | bool = True  # let httpx use system defaults; never disable

@@ -6,20 +6,23 @@ import sys
 from datetime import datetime, timezone
 
 
-def create_logger(tag: str):
+class Logger:
+    """Simple tagged logger that writes to stdout/stderr with UTC timestamps."""
+
+    def __init__(self, tag: str) -> None:
+        self._tag = tag
+
+    @staticmethod
+    def _ts() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    def log(self, *args: object) -> None:
+        print(f"[{self._tag}][{self._ts()}]", *args, flush=True)
+
+    def error(self, *args: object) -> None:
+        print(f"[{self._tag}][{self._ts()}]", *args, file=sys.stderr, flush=True)
+
+
+def create_logger(tag: str) -> Logger:
     """Create a logger with the given tag prefix."""
-
-    class _Logger:
-        @staticmethod
-        def _ts() -> str:
-            return datetime.now(timezone.utc).isoformat()
-
-        @staticmethod
-        def log(*args: object) -> None:
-            print(f"[{tag}][{_Logger._ts()}]", *args, flush=True)
-
-        @staticmethod
-        def error(*args: object) -> None:
-            print(f"[{tag}][{_Logger._ts()}]", *args, file=sys.stderr, flush=True)
-
-    return _Logger()
+    return Logger(tag)

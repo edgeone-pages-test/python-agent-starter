@@ -15,7 +15,9 @@ export default function ChatWindow({ messages, loading }: Props) {
     if (messages.length === 0 && !loading) return;
     const el = windowRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
   }, [messages, loading]);
 
   const lastMsg = messages[messages.length - 1];

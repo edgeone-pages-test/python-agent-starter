@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message } from '../types';
@@ -50,9 +51,12 @@ function normalizeMarkdown(content: string): string {
     .join('\n');
 }
 
-export default function ChatBubble({ message }: Props) {
+export default React.memo(function ChatBubble({ message }: Props) {
   const isUser = message.role === 'user';
-  const content = isUser ? message.content : normalizeMarkdown(message.content);
+  const content = useMemo(
+    () => (isUser ? message.content : normalizeMarkdown(message.content)),
+    [message.content, isUser],
+  );
   const images = message.images || [];
 
   if (!isUser && !message.content && images.length === 0) return null;
@@ -84,4 +88,4 @@ export default function ChatBubble({ message }: Props) {
       {isUser && <div className={`${styles.avatar} ${styles.userAvatar}`}>你</div>}
     </div>
   );
-}
+});

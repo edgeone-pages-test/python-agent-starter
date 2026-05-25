@@ -119,8 +119,8 @@ class ToolRegistry:
 
         try:
             args = json.loads(arguments) if arguments else {}
-        except json.JSONDecodeError:
-            args = {}
+        except json.JSONDecodeError as e:
+            return json.dumps({"error": f"Invalid arguments JSON: {str(e)}"}, ensure_ascii=False)
 
         try:
             if self._use_kwargs.get(name, False):
