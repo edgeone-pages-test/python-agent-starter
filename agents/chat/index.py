@@ -265,11 +265,17 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
 
     except (httpx.HTTPError, httpx.StreamError) as e:
         logger.error(f"[handler] httpx error: {type(e).__name__}: {e}")
-        context.tracer.record_exception(e)
+        context.tracer.set_attributes({
+            "error.type": type(e).__name__,
+            "error.message": str(e),
+        })
         yield sse_event("error", {"message": "LLM 服务请求失败，请稍后重试"})
     except Exception as e:
         logger.error(f"[handler] unexpected error: {type(e).__name__}: {e}")
-        context.tracer.record_exception(e)
+        context.tracer.set_attributes({
+            "error.type": type(e).__name__,
+            "error.message": str(e),
+        })
         yield sse_event("error", {"message": "服务内部错误"})
 
     # ── Tracer: save assistant response ──

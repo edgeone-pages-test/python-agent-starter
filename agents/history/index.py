@@ -63,7 +63,10 @@ async def handler(context: Any):
         history_span.set_attributes({"session.message_count": len(history)})
     except Exception as e:
         logger.error(f"[history] failed to get messages: {e}")
-        context.tracer.record_exception(e)
+        history_span.set_attributes({
+            "error.type": type(e).__name__,
+            "error.message": str(e),
+        })
         return {"messages": []}
     finally:
         history_span.end()
