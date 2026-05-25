@@ -25,6 +25,9 @@ function getOrCreateConversationId(): string {
   return conversationId;
 }
 
+// ✅ 模块级去重标记 —— 脱离 React 生命周期，StrictMode 无法干扰
+let _historyFetchInFlight = false;
+
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [lamps, setLamps]       = useState<ToolLampState[]>(INITIAL_LAMPS);
@@ -34,17 +37,17 @@ export default function App() {
   const botMsgIdRef = useRef<string>('');
   const abortCtrlRef = useRef<AbortController | null>(null);
   const conversationIdRef = useRef<string>(getOrCreateConversationId());
-  const historyFetchedRef = useRef(false);
 
   useEffect(() => {
-    if (historyFetchedRef.current) return;
-    historyFetchedRef.current = true;
+    if (_historyFetchInFlight) return;
+    _historyFetchInFlight = true;
 
     fetchConversationHistory(conversationIdRef.current).then(history => {
       if (history.length > 0) {
         setMessages(history);
       }
     }).finally(() => {
+      _historyFetchInFlight = false;
       setHistoryLoading(false);
     });
   }, []);
