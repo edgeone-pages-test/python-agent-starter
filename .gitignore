@@ -50,3 +50,6 @@ plan/
 __pycache__/
 *.py[cod]
 *.egg-info/
+
+# AI assistant local instructions
+CLAUDE.md
