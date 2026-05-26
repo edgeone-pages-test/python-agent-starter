@@ -39,6 +39,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Internal planning docs
+plan/
+
 # TypeScript / Vite
 *.tsbuildinfo
 *.local
