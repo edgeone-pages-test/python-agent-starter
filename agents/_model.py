@@ -71,7 +71,7 @@ _fix_ssl_globally()
 MODEL_CONFIG = {
     "api_key": os.getenv("AI_GATEWAY_API_KEY", ""),
     "base_url": os.getenv("AI_GATEWAY_BASE_URL", ""),
-    "model": os.getenv("AI_GATEWAY_MODEL", "@Pages/minimax-m2.7"),
+    "model": os.getenv("AI_GATEWAY_MODEL", "@makers/minimax-m2.7"),
 }
 
 # SSL verification for our own httpx calls.

@@ -52,7 +52,7 @@ python-starter/
 |------|------|------|
 | `AI_GATEWAY_API_KEY` | 是 | LLM API 密钥 |
 | `AI_GATEWAY_BASE_URL` | 是 | LLM API 地址（OpenAI 兼容） |
-| `AI_GATEWAY_MODEL` | 否 | 模型名称（默认 `@Pages/minimax-m2.7`） |
+| `AI_GATEWAY_MODEL` | 否 | 模型名称（默认 `@makers/minimax-m2.7`） |
 
 ## API 接口
 
