@@ -52,18 +52,20 @@ def sse_event(event: str, data: dict[str, Any]) -> str:
 async def parse_stream_with_tools(
     response: httpx.Response,
     cancel_signal: asyncio.Event,
-) -> AsyncGenerator[tuple[str, list[dict[str, Any]] | None], None]:
+) -> AsyncGenerator[tuple[str, list[dict[str, Any]] | None, dict[str, int] | None], None]:
     """Parse OpenAI-compatible SSE stream and accumulate tool calls.
 
-    Yields tuples of (content_delta, tool_calls):
-      - (content_delta, None): a text chunk to stream to the user
-      - ("", [...]): final accumulated tool_calls, yielded once at the end
+    Yields tuples of (content_delta, tool_calls, usage):
+      - (content_delta, None, None): a text chunk to stream to the user
+      - ("", [...], usage): final accumulated tool_calls + usage, yielded once at the end
+      - ("", None, usage): usage only (no tool calls), yielded at the end
 
     Tool calls are accumulated across streaming chunks because the API sends
     function call arguments incrementally.
     """
     tool_calls_acc: dict[int, dict[str, str]] = {}
     finish_reason = None
+    usage: dict[str, int] | None = None
 
     async for line in response.aiter_lines():
         if cancel_signal.is_set():
@@ -83,6 +85,10 @@ async def parse_stream_with_tools(
         except json.JSONDecodeError:
             continue
 
+        # Capture usage from the final chunk
+        if chunk.get("usage"):
+            usage = chunk["usage"]
+
         choices = chunk.get("choices", [])
         if not choices:
             continue
@@ -95,7 +101,7 @@ async def parse_stream_with_tools(
 
         content = delta.get("content")
         if content:
-            yield (content, None)
+            yield (content, None, None)
 
         delta_tool_calls = delta.get("tool_calls")
         if delta_tool_calls:
@@ -126,7 +132,9 @@ async def parse_stream_with_tools(
 
     if tool_calls_acc and finish_reason == "tool_calls":
         sorted_calls = [tool_calls_acc[i] for i in sorted(tool_calls_acc.keys())]
-        yield ("", sorted_calls)
+        yield ("", sorted_calls, usage)
+    elif usage:
+        yield ("", None, usage)
 
 
 async def stream_llm_round(
@@ -169,7 +177,7 @@ async def stream_llm_round(
 
             llm_span.set_attributes({"http.status_code": 200})
 
-            async for content_delta, tc_list in parse_stream_with_tools(response, cancel_signal):
+            async for content_delta, tc_list, usage in parse_stream_with_tools(response, cancel_signal):
                 if cancel_signal.is_set():
                     cancelled = True
                     break
@@ -180,6 +188,13 @@ async def stream_llm_round(
 
                 if tc_list is not None:
                     tool_calls = tc_list
+
+                if usage:
+                    llm_span.set_attributes({
+                        "llm.token_count.prompt": usage.get("prompt_tokens", 0),
+                        "llm.token_count.completion": usage.get("completion_tokens", 0),
+                        "llm.token_count.total": usage.get("total_tokens", 0),
+                    })
     finally:
         llm_span.set_attributes({
             "llm.response.content_length": len(round_content),

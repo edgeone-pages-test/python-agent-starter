@@ -152,6 +152,7 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
                     "model": MODEL_CONFIG["model"],
                     "messages": messages,
                     "stream": True,
+                    "stream_options": {"include_usage": True},
                 }
                 if tool_registry.has_tools():
                     payload["tools"] = tool_registry.tools
@@ -161,7 +162,10 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
 
                 # ── Tracer: LLM request span ──
                 llm_span = context.tracer.start_span(f"llm.request.round_{round_idx + 1}", {
-                    "llm.model": MODEL_CONFIG["model"],
+                    "openinference.span.kind": "LLM",
+                    "llm.model_name": MODEL_CONFIG["model"],
+                    "llm.provider": "openai",
+                    "llm.request.type": "chat",
                     "llm.request.message_count": len(messages),
                     "llm.request.tools_included": "tools" in payload,
                     "llm.request.round": round_idx + 1,
