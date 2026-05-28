@@ -1,5 +1,5 @@
 """
-Chat handler -- EdgeOne Pages Functions
+Chat handler -- EdgeOne Makers
 ========================================
 
 File path agents/chat/index.py maps to **POST /chat**
@@ -58,7 +58,7 @@ MAX_MESSAGE_LENGTH = 10000
 
 
 async def handler(context: Any) -> AsyncGenerator[str, None]:
-    """EdgeOne Pages Functions entry point.
+    """EdgeOne Makers entry point.
 
     Streams LLM responses with EdgeOne platform tool calling support.
     Instruments key operations via context.tracer for observability.

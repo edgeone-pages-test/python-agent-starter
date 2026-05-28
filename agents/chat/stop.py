@@ -1,5 +1,5 @@
 """
-Stop handler -- EdgeOne Pages Functions
+Stop handler -- EdgeOne Makers
 ========================================
 
 File path agents/chat/stop.py maps to **POST /chat/stop**

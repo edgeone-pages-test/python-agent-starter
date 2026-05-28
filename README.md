@@ -1,6 +1,6 @@
 # Python Starter Agent
 
-A minimal Python LLM Agent template on EdgeOne Pages Functions. Demonstrates how to build a streaming chat Agent with raw `httpx` calls, EdgeOne sandbox tool calling, and session memory via `context.store`.
+A minimal Python LLM Agent template on EdgeOne Makers. Demonstrates how to build a streaming chat Agent with raw `httpx` calls, EdgeOne sandbox tool calling, and session memory via `context.store`.
 
 ## Features
 
@@ -15,7 +15,7 @@ A minimal Python LLM Agent template on EdgeOne Pages Functions. Demonstrates how
 
 ```text
 python-starter/
-├── agents/                        # Python backend (EdgeOne Pages Functions)
+├── agents/                        # Python backend (EdgeOne Makers)
 │   ├── chat/
 │   │   ├── index.py              # POST /chat — main chat entry (SSE streaming)
 │   │   └── stop.py               # POST /chat/stop — abort active run
@@ -96,5 +96,5 @@ event: done           data: {"stopped":false}
 npm install
 
 # Start EdgeOne local dev (frontend + backend)
-edgeone pages dev
+edgeone makers dev
 ```

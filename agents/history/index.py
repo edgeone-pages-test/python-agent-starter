@@ -1,5 +1,5 @@
 """
-History handler -- EdgeOne Pages Functions
+History handler -- EdgeOne Makers
 ==========================================
 
 File path agents/history/index.py maps to **POST /history**

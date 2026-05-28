@@ -1,6 +1,6 @@
 # Python Starter Agent
 
-基于 EdgeOne Pages Functions 的极简 Python LLM Agent 模板。演示如何使用原生 `httpx` 调用 OpenAI-compatible 接口，配合 EdgeOne 沙箱工具和 `context.store` 会话记忆，构建流式聊天 Agent。
+基于 EdgeOne Makers 的极简 Python LLM Agent 模板。演示如何使用原生 `httpx` 调用 OpenAI-compatible 接口，配合 EdgeOne 沙箱工具和 `context.store` 会话记忆，构建流式聊天 Agent。
 
 ## 功能
 
@@ -15,7 +15,7 @@
 
 ```text
 python-starter/
-├── agents/                        # Python 后端（EdgeOne Pages Functions）
+├── agents/                        # Python 后端（EdgeOne Makers）
 │   ├── chat/
 │   │   ├── index.py              # POST /chat — 主聊天入口（SSE 流式）
 │   │   └── stop.py               # POST /chat/stop — 中断入口
@@ -96,5 +96,5 @@ event: done           data: {"stopped":false}
 npm install
 
 # 启动 EdgeOne 本地开发（前后端同时启动）
-edgeone pages dev
+edgeone makers dev
 ```

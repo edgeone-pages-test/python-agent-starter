@@ -1,5 +1,5 @@
 /**
- * Backend API (EdgeOne Pages Functions — Python)
+ * Backend API (EdgeOne Makers — Python)
  *
  * Route mapping (file → route):
  *   agents/chat/index.py      → POST /chat          Main chat entry
