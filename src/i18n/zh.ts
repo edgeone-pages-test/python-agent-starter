@@ -29,6 +29,13 @@ const zh = {
   "status.stopped": "⏹ *已停止生成*",
   "status.backendError": "后端中止请求失败，服务器可能仍在运行。",
 
+  // Trace panel
+  "trace.title": "Trace",
+  "trace.events": "事件",
+  "trace.clear": "清除",
+  "trace.empty": "等待 SSE 事件...",
+  "trace.emptyHint": "发送消息后，原始后端 SSE 数据会显示在这里。",
+
   // Language toggle
   "lang.switch": "English",
 } as const;

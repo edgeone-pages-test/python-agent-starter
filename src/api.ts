@@ -19,19 +19,27 @@ export const API = {
   history: '/history',
 } as const;
 
+export interface RawSseEvent {
+  eventType: string;
+  data: unknown;
+  raw: string;
+  timestamp: number;
+}
+
 export interface StreamCallbacks {
   onTextDelta: (delta: string) => void;
   onToolCalled: (toolName: string) => void;
   onImage: (base64: string) => void;
   onDone: () => void;
   onError: (err: Error) => void;
+  onRawEvent?: (event: RawSseEvent) => void;
 }
 
 /**
  * Fetch conversation history from POST /history.
  * Used to restore the chat window after page refresh.
  *
- * The conversation_id is passed via the `pages-agent-conversation-id` header,
+ * The conversation_id is passed via the `makers-conversation-id` header,
  * which the EdgeOne runtime resolves into context.conversation_id on the backend.
  */
 export async function fetchConversationHistory(conversationId: string): Promise<Message[]> {
@@ -41,7 +49,7 @@ export async function fetchConversationHistory(conversationId: string): Promise<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'pages-agent-conversation-id': conversationId,
+          'makers-conversation-id': conversationId,
         },
         body: JSON.stringify({}),
       });
@@ -156,6 +164,16 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
 
   try {
     const parsed = JSON.parse(data);
+
+    if (cb.onRawEvent) {
+      cb.onRawEvent({
+        eventType,
+        data: parsed,
+        raw: data,
+        timestamp: Date.now(),
+      });
+    }
+
     switch (eventType) {
       case 'text_delta':
         cb.onTextDelta(parsed.delta);
@@ -175,7 +193,14 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
         break;
     }
   } catch {
-    // Ignore events that fail to parse
+    if (cb.onRawEvent) {
+      cb.onRawEvent({
+        eventType,
+        data: null,
+        raw: data,
+        timestamp: Date.now(),
+      });
+    }
   }
 }
 

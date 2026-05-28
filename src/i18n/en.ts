@@ -29,6 +29,13 @@ const en = {
   "status.stopped": "⏹ *Generation stopped*",
   "status.backendError": "Backend abort request failed. The server may still be running.",
 
+  // Trace panel
+  "trace.title": "Trace",
+  "trace.events": "events",
+  "trace.clear": "Clear",
+  "trace.empty": "Waiting for SSE events...",
+  "trace.emptyHint": "After sending a message, raw backend SSE data will be displayed here.",
+
   // Language toggle
   "lang.switch": "中文",
 } as const;

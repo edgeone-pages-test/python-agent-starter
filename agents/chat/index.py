@@ -23,7 +23,7 @@ context convention:
 
 from typing import Any, AsyncGenerator
 import asyncio
-import json
+import time
 
 import httpx
 
@@ -31,6 +31,7 @@ from .._model import MODEL_CONFIG, ssl_verify
 from .._logger import create_logger
 from .._session import ChatSession
 from .._tools import build_tools, ToolRegistry
+from ._stream import LlmRoundResult, sse_event, stream_llm_round, safe_json_preview
 
 
 logger = create_logger("chat")
@@ -54,10 +55,6 @@ SYSTEM_PROMPT = (
 # Maximum number of tool call rounds to prevent infinite loops
 MAX_TOOL_ROUNDS = 10
 MAX_MESSAGE_LENGTH = 10000
-
-
-def sse_event(event: str, data: dict) -> str:
-    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 async def handler(context: Any) -> AsyncGenerator[str, None]:
@@ -170,45 +167,33 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
                     "llm.request.round": round_idx + 1,
                 })
 
-                # Stream and collect the response
-                round_content = ""
-                tool_calls: list[dict[str, Any]] = []
+                round_result: LlmRoundResult | None = None
+                async for item in stream_llm_round(
+                    client=client,
+                    url=url,
+                    payload=payload,
+                    headers=headers,
+                    cancel_signal=cancel_signal,
+                    llm_span=llm_span,
+                    logger=logger,
+                ):
+                    if isinstance(item, str):
+                        yield item
+                    else:
+                        round_result = item
 
-                try:
-                    async with client.stream("POST", url, json=payload, headers=headers) as response:
-                        if response.status_code != 200:
-                            error_body = await response.aread()
-                            logger.error(f"[handler] LLM API error: {response.status_code} {error_body.decode()}")
-                            llm_span.set_attributes({
-                                "http.status_code": response.status_code,
-                                "llm.error": True,
-                            })
-                            yield sse_event("error", {"message": f"LLM API error: {response.status_code}"})
-                            yield sse_event("done", {})
-                            return
+                if round_result is None:
+                    break
 
-                        llm_span.set_attributes({"http.status_code": 200})
+                if round_result.should_return:
+                    return
 
-                        async for content_delta, tc_list in _parse_stream_with_tools(response, cancel_signal):
-                            if cancel_signal.is_set():
-                                cancelled = True
-                                break
+                round_content = round_result.round_content
+                tool_calls = round_result.tool_calls
+                assistant_content += round_content
 
-                            if content_delta:
-                                round_content += content_delta
-                                assistant_content += content_delta
-                                yield sse_event("text_delta", {"delta": content_delta})
-
-                            if tc_list is not None:
-                                tool_calls = tc_list
-                finally:
-                    llm_span.set_attributes({
-                        "llm.response.content_length": len(round_content),
-                        "llm.response.has_tool_calls": bool(tool_calls),
-                    })
-                    llm_span.end()
-
-                if cancelled:
+                if round_result.cancelled:
+                    cancelled = True
                     break
 
                 if not tool_calls:
@@ -231,9 +216,15 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
                 ]
                 messages.append(assistant_msg)
 
-                # Emit tool_called events
+                # Emit tool_called events and tool_debug call phase
                 for tc in tool_calls:
                     yield sse_event("tool_called", {"tool": tc["name"]})
+                    yield sse_event("tool_debug", {
+                        "phase": "call",
+                        "tool": tc["name"],
+                        "id": tc["id"],
+                        "argumentsPreview": safe_json_preview(tc["arguments"], 1200),
+                    })
 
                 # ── Tracer: tool execution spans ──
                 tool_spans = []
@@ -246,9 +237,20 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
                     tool_spans.append(ts)
 
                 try:
-                    results = await asyncio.gather(
-                        *(tool_registry.execute(tc["name"], tc["arguments"]) for tc in tool_calls)
-                    )
+                    results = []
+                    for tc_item in tool_calls:
+                        started_at = time.perf_counter()
+                        result = await tool_registry.execute(tc_item["name"], tc_item["arguments"])
+                        duration_ms = int((time.perf_counter() - started_at) * 1000)
+                        results.append(result)
+                        yield sse_event("tool_debug", {
+                            "phase": "result",
+                            "tool": tc_item["name"],
+                            "id": tc_item["id"],
+                            "resultPreview": safe_json_preview(result, 2000),
+                            "resultLength": len(result),
+                            "durationMs": duration_ms,
+                        })
                     for ts, result in zip(tool_spans, results):
                         ts.set_attributes({"tool.result_length": len(result)})
                 finally:
@@ -290,87 +292,3 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
             save_span.end()
 
     yield sse_event("done", {"stopped": cancelled})
-
-
-async def _parse_stream_with_tools(
-    response: httpx.Response,
-    cancel_signal: asyncio.Event,
-) -> AsyncGenerator[tuple[str, list[dict[str, Any]] | None], None]:
-    """Parse SSE stream from OpenAI-compatible API, handling both content and tool_calls.
-
-    Yields tuples of (content_delta, tool_calls):
-      - (content_delta, None): a text chunk to stream to the user
-      - ("", [...]):           final accumulated tool_calls (yielded once at the end)
-
-    Tool calls are accumulated across streaming chunks because the API sends
-    arguments incrementally across multiple chunks.
-    """
-    # Accumulator for tool calls: index -> {id, name, arguments}
-    tool_calls_acc: dict[int, dict[str, str]] = {}
-    finish_reason = None
-
-    async for line in response.aiter_lines():
-        if cancel_signal.is_set():
-            break
-
-        line = line.strip()
-        if not line:
-            continue
-        if line == "data: [DONE]":
-            break
-        if not line.startswith("data: "):
-            continue
-
-        json_str = line[6:]
-        try:
-            chunk = json.loads(json_str)
-        except json.JSONDecodeError:
-            continue
-
-        choices = chunk.get("choices", [])
-        if not choices:
-            continue
-
-        choice = choices[0]
-        delta = choice.get("delta", {})
-        choice_finish = choice.get("finish_reason")
-        if choice_finish:
-            finish_reason = choice_finish
-
-        # Handle text content
-        content = delta.get("content")
-        if content:
-            yield (content, None)
-
-        # Handle tool calls (accumulated across chunks)
-        delta_tool_calls = delta.get("tool_calls")
-        if delta_tool_calls:
-            for tc_delta in delta_tool_calls:
-                idx = tc_delta.get("index", 0)
-
-                if idx not in tool_calls_acc:
-                    tool_calls_acc[idx] = {
-                        "id": tc_delta.get("id", ""),
-                        "name": "",
-                        "arguments": "",
-                    }
-
-                tc = tool_calls_acc[idx]
-
-                # id only comes in the first chunk for each tool call
-                if tc_delta.get("id"):
-                    tc["id"] = tc_delta["id"]
-
-                # function.name only comes in the first chunk
-                func = tc_delta.get("function", {})
-                if func.get("name"):
-                    tc["name"] = func["name"]
-
-                # function.arguments is streamed incrementally
-                if func.get("arguments"):
-                    tc["arguments"] += func["arguments"]
-
-    # After stream ends, yield accumulated tool_calls if any
-    if tool_calls_acc and finish_reason == "tool_calls":
-        sorted_calls = [tool_calls_acc[i] for i in sorted(tool_calls_acc.keys())]
-        yield ("", sorted_calls)

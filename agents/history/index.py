@@ -44,32 +44,15 @@ async def handler(context: Any):
     """Return conversation history as a list of messages."""
     cid = context.conversation_id
 
-    # ── Tracer: set request-level attributes ──
-    context.tracer.set_attributes({
-        "agent.scenario": "history_query",
-        "history.conversation_id": cid,
-    })
-
     store = getattr(context, "store", None)
     if store is None:
         return {"messages": []}
 
-    # ── Tracer: wrap store query ──
-    history_span = context.tracer.start_span("session.get_messages", {
-        "session.conversation_id": cid,
-    })
     try:
         history = await store.get_messages(cid, limit=100, order="asc")
-        history_span.set_attributes({"session.message_count": len(history)})
     except Exception as e:
         logger.error(f"[history] failed to get messages: {e}")
-        history_span.set_attributes({
-            "error.type": type(e).__name__,
-            "error.message": str(e),
-        })
         return {"messages": []}
-    finally:
-        history_span.end()
 
     messages: list[dict] = []
     for item in history:
