@@ -91,7 +91,7 @@ export function sendMessageStream(
         'Content-Type': 'application/json',
       };
       if (conversationId) {
-        headers['pages-agent-conversation-id'] = conversationId;
+        headers['makers-conversation-id'] = conversationId;
       }
 
       const res = await fetch(API.chat, {
@@ -209,7 +209,7 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
  * Maps to agents/chat/stop.py → POST /chat/stop
  *
  * IMPORTANT: The stop request must NOT carry the same
- * `pages-agent-conversation-id` header as the chat request,
+ * `makers-conversation-id` header as the chat request,
  * otherwise the runtime overwrites the chat's cancel signal.
  * The target conversation_id is passed only via body.
  */

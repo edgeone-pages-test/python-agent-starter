@@ -9,7 +9,7 @@ Receives conversation_id and aborts the active run via the platform runtime:
   2. index.py's streaming loop detects the signal and breaks
 
 IMPORTANT: The stop request must NOT carry the same
-`pages-agent-conversation-id` header as the chat request,
+`makers-conversation-id` header as the chat request,
 otherwise the runtime overwrites the chat's signal.
 The target conversation_id is passed only via request body.
 """

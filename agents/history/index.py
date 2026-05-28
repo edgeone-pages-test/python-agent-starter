@@ -5,7 +5,7 @@ History handler -- EdgeOne Pages Functions
 File path agents/history/index.py maps to **POST /history**
 
 Reads conversation history from ctx.store for the given conversation_id
-(passed via `pages-agent-conversation-id` header by the frontend).
+(passed via `makers-conversation-id` header by the frontend).
 Used to restore the chat window after page refresh.
 """
 

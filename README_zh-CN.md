@@ -58,9 +58,9 @@ python-starter/
 
 | 端点 | 方法 | 说明 |
 |------|------|------|
-| `/chat` | POST | SSE 流式聊天，Header 带 `pages-agent-conversation-id` |
+| `/chat` | POST | SSE 流式聊天，Header 带 `makers-conversation-id` |
 | `/chat/stop` | POST | 中断正在执行的 agent，Body 传 `{ "conversation_id": "..." }` |
-| `/history` | POST | 获取对话历史，Header 带 `pages-agent-conversation-id` |
+| `/history` | POST | 获取对话历史，Header 带 `makers-conversation-id` |
 
 ### SSE 事件
 
