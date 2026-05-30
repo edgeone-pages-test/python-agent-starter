@@ -31,6 +31,13 @@ function getOrCreateConversationId(): string {
   return conversationId;
 }
 
+function isWebSearchToolEvent(event: RawSseEvent): boolean {
+  if (event.eventType !== 'tool_called' || !event.data || typeof event.data !== 'object') {
+    return false;
+  }
+  return (event.data as { tool?: unknown }).tool === 'web_search';
+}
+
 // Module-level dedup flag — outside React lifecycle, unaffected by StrictMode
 let _historyFetchInFlight = false;
 
@@ -98,6 +105,30 @@ function AppInner() {
     );
   }, []);
 
+  const setBotActivity = useCallback((activity: Message['activity']) => {
+    setMessages(prev =>
+      prev.map(m =>
+        m.id === botMsgIdRef.current
+          ? { ...m, activity }
+          : m
+      )
+    );
+  }, []);
+
+  const finishBotActivity = useCallback(() => {
+    setMessages(prev => {
+      let changed = false;
+      const next = prev.map(m => {
+        if (m.id === botMsgIdRef.current && m.activity?.status === 'active') {
+          changed = true;
+          return { ...m, activity: { ...m.activity, status: 'done' as const } };
+        }
+        return m;
+      });
+      return changed ? next : prev;
+    });
+  }, []);
+
   /** Append an image to the current bot message. */
   const appendBotImage = useCallback((base64: string) => {
     setMessages(prev =>
@@ -138,10 +169,15 @@ function AppInner() {
 
     const ctrl = sendMessageStream(text, {
       onTextDelta(delta) {
+        finishBotActivity();
         updateBotMessage(content => content + delta);
       },
 
       onToolCalled(toolName) {
+        if (toolName === 'web_search') {
+          setBotActivity({ type: 'web_search', label: 'Web searching...', status: 'active' });
+        }
+
         setLamps(prev =>
           prev.map(l =>
             l.id === toolName
@@ -162,23 +198,32 @@ function AppInner() {
       },
 
       onImage(base64) {
+        finishBotActivity();
         appendBotImage(base64);
       },
 
       onRawEvent(event) {
+        if (!isWebSearchToolEvent(event)) {
+          finishBotActivity();
+        }
+        if (event.eventType === 'text_delta') return;
         setTraceEvents(prev => [...prev, event]);
       },
 
-      onDone: finishStream,
+      onDone() {
+        finishBotActivity();
+        finishStream();
+      },
 
       onError() {
+        finishBotActivity();
         updateBotMessage(content => content || t('status.error'));
         finishStream();
       },
     }, conversationIdRef.current);
 
     abortCtrlRef.current = ctrl;
-  }, [updateBotMessage, appendBotImage, finishStream, t]);
+  }, [updateBotMessage, setBotActivity, finishBotActivity, appendBotImage, finishStream, t]);
 
   const handleClearHistory = useCallback(() => {
     // Abort any in-flight stream before resetting state
@@ -208,6 +253,7 @@ function AppInner() {
 
     // 3. Optimistic UI: show stopped immediately without waiting for backend
     const stoppedText = t('status.stopped');
+    finishBotActivity();
     updateBotMessage(content => content ? content + '\n\n' + stoppedText : stoppedText);
     setLoading(false);
 
@@ -222,7 +268,7 @@ function AppInner() {
         ));
       }
     });
-  }, [updateBotMessage, t]);
+  }, [finishBotActivity, updateBotMessage, t]);
 
   return (
     <div className={styles.shell}>
@@ -231,11 +277,6 @@ function AppInner() {
 
       <div className={styles.stage}>
         <div className={styles.chatPanel}>
-          {historyLoading && messages.length === 0 && (
-            <div className={styles.historyOverlay}>
-              <div className={styles.historySpinner} />
-            </div>
-          )}
           <header className={styles.header}>
             <div className={styles.headerLeft}>
               <span className={styles.logo}>⬡</span>
@@ -247,7 +288,14 @@ function AppInner() {
             <ToolIndicators lamps={lamps} />
           </header>
 
-          <ChatWindow messages={messages} loading={loading} />
+          <div className={styles.chatWindowShell}>
+            <ChatWindow messages={messages} loading={loading} />
+            {historyLoading && messages.length === 0 && (
+              <div className={styles.historyOverlay}>
+                <div className={styles.historySpinner} />
+              </div>
+            )}
+          </div>
           <ChatInput onSend={handleSend} onStop={handleStop} onClear={handleClearHistory} disabled={loading} />
         </div>
 

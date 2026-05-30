@@ -23,7 +23,7 @@ export default function ChatWindow({ messages, loading }: Props) {
   }, [messages, loading]);
 
   const lastMsg = messages[messages.length - 1];
-  const showTypingIndicator = loading && !(lastMsg?.role === 'assistant' && lastMsg.content.length > 0);
+  const showTypingIndicator = loading && !(lastMsg?.role === 'assistant' && (lastMsg.content.length > 0 || lastMsg.activity));
 
   return (
     <div ref={windowRef} className={styles.window}>

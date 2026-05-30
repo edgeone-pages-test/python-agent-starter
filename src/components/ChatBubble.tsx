@@ -58,16 +58,32 @@ export default React.memo(function ChatBubble({ message }: Props) {
     [message.content, isUser],
   );
   const images = message.images || [];
+  const activity = message.activity;
 
-  if (!isUser && !message.content && images.length === 0) return null;
+  if (!isUser && !message.content && images.length === 0 && !activity) return null;
 
   return (
     <div className={`${styles.row} ${isUser ? styles.userRow : styles.botRow}`}>
       {!isUser && <div className={styles.avatar}>⬡</div>}
       <div className={`${styles.bubble} ${isUser ? styles.userBubble : styles.botBubble}`}>
+        {!isUser && activity?.type === 'web_search' && (
+          <div
+            className={`${styles.webSearchActivity} ${activity.status === 'done' ? styles.webSearchDone : styles.webSearchActive}`}
+            role="status"
+            aria-live="polite"
+          >
+            <span className={styles.searchGlyph} aria-hidden="true" />
+            <span className={styles.searchLabel}>{activity.label}</span>
+            <span className={styles.searchDots} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+        )}
         {isUser
           ? content
-          : <div className={styles.markdown}><Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown></div>
+          : content && <div className={styles.markdown}><Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown></div>
         }
         {images.length > 0 && (
           <div className={styles.imageList}>
