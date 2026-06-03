@@ -53,3 +53,9 @@ __pycache__/
 
 # AI assistant local instructions
 CLAUDE.md
+
+# Tencent Cloud EdgeOne
+.env
+.edgeone/*
+.tef_dist/*
+  
