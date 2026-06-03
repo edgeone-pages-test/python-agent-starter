@@ -2,6 +2,10 @@
 
 基于 EdgeOne Makers 的极简 Python LLM Agent 模板。演示如何使用原生 `httpx` 调用 OpenAI-compatible 接口，配合 EdgeOne 沙箱工具和 `context.store` 会话记忆，构建流式聊天 Agent。
 
+## 部署
+
+[![使用 EdgeOne Pages 部署](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://console.cloud.tencent.com/edgeone/makers/new?template=python-starter-agent&from=within&fromAgent=1&agentLang=python)
+
 ## 功能
 
 - **流式聊天** — SSE (Server-Sent Events) 逐 token 推送模型回复
