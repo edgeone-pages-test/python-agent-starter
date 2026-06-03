@@ -2,6 +2,10 @@
 
 A minimal Python LLM Agent template on EdgeOne Makers. Demonstrates how to build a streaming chat Agent with raw `httpx` calls, EdgeOne sandbox tool calling, and session memory via `context.store`.
 
+## Deploy
+
+[![Deploy with EdgeOne Pages](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/makers/new?template=python-starter-agent&from=within&fromAgent=1&agentLang=python)
+
 ## Features
 
 - **Streaming Chat** — SSE (Server-Sent Events) token-by-token response push

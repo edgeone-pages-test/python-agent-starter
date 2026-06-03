@@ -159,14 +159,28 @@ async def stream_llm_round(
         async with client.stream("POST", url, json=payload, headers=headers) as response:
             if response.status_code != 200:
                 error_body = await response.aread()
+                error_text = error_body.decode(errors="replace")
                 logger.error(
-                    f"[handler] LLM API error: {response.status_code} {error_body.decode()}"
+                    f"[handler] LLM API error: {response.status_code} {error_text}"
                 )
                 llm_span.set_attributes({
                     "http.status_code": response.status_code,
                     "llm.error": True,
                 })
-                yield sse_event("error", {"message": f"LLM API error: {response.status_code}"})
+
+                # Try to parse upstream body as JSON so TracePanel can render it structured
+                detail: Any = error_text
+                try:
+                    detail = json.loads(error_text) if error_text else ""
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
+                yield sse_event("error", {
+                    "message": f"LLM API error: {response.status_code}",
+                    "status": response.status_code,
+                    "model": payload.get("model"),
+                    "detail": detail,
+                })
                 yield sse_event("done", {})
                 yield LlmRoundResult(
                     round_content=round_content,

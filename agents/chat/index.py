@@ -47,8 +47,14 @@ SYSTEM_PROMPT = (
     "  Parameters: language (e.g. python, javascript, bash), code (source code to execute).\n"
     "- browser: interact with web pages — fetch, screenshot, click, type, evaluate.\n"
     "  Parameters: op (required), url (for fetch), selector, text, script.\n\n"
-    "Use tools whenever they help answer the user's question concretely.\n"
-    "Call tools ONE AT A TIME. Do NOT simulate or fake tool outputs — actually call the tool.\n"
+    "Tool-use rules:\n"
+    "1. Use a tool only when it is necessary to answer the user concretely.\n"
+    "2. Call tools one at a time and wait for each result before deciding the next step.\n"
+    "3. Never invent, simulate, or paraphrase tool results. If a tool result is unavailable, say so.\n"
+    "4. If a tool call fails, do not repeat it blindly and do not switch to unrelated operations.\n"
+    "   Briefly explain the failure, adjust the parameters only if the fix is clear, otherwise ask the user for guidance.\n"
+    "5. Do not perform destructive file or shell operations unless the user explicitly asks for them.\n"
+    "6. If the task can be answered without tools, answer directly and keep the response concise.\n"
     "Do NOT use any tools other than those listed above."
 )
 
@@ -275,14 +281,22 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
             "error.type": type(e).__name__,
             "error.message": str(e),
         })
-        yield sse_event("error", {"message": "LLM service request failed, please try again later"})
+        yield sse_event("error", {
+            "message": "LLM service request failed, please try again later",
+            "errorType": type(e).__name__,
+            "detail": str(e),
+        })
     except Exception as e:
         logger.error(f"[handler] unexpected error: {type(e).__name__}: {e}")
         context.tracer.set_attributes({
             "error.type": type(e).__name__,
             "error.message": str(e),
         })
-        yield sse_event("error", {"message": "Internal server error"})
+        yield sse_event("error", {
+            "message": "Internal server error",
+            "errorType": type(e).__name__,
+            "detail": str(e),
+        })
 
     # ── Tracer: save assistant response ──
     if assistant_content:
