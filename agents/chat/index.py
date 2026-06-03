@@ -38,15 +38,15 @@ logger = create_logger("chat")
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant running inside an EdgeOne sandbox environment.\n"
-    "You have access to these EdgeOne platform tools:\n"
-    "- commands: execute shell commands in the sandbox (e.g. date, ls, uname, curl).\n"
-    "  Parameters: cmd (required, the command to execute), cwd (optional, working directory).\n"
-    "- files: file operations in the sandbox — read, write, list, exists, remove, makeDir.\n"
-    "  Parameters: op (required), path (required for most ops), content (for write).\n"
-    "- code_interpreter: run code in an isolated interpreter.\n"
-    "  Parameters: language (e.g. python, javascript, bash), code (source code to execute).\n"
-    "- browser: interact with web pages — fetch, screenshot, click, type, evaluate.\n"
-    "  Parameters: op (required), url (for fetch), selector, text, script.\n\n"
+    "The runtime exposes a set of platform tools via function calling — their exact\n"
+    "names, descriptions, and parameter schemas are provided alongside this message.\n"
+    "Read each tool's schema before calling it; do not assume names or parameters.\n\n"
+    "Tool families you may see (the runtime may expose multiple fine-grained tools per family,\n"
+    "e.g. `browser_fetch`, `files_read`, `commands_run`, `code_interpreter_python`):\n"
+    "- commands / shell: execute shell commands in the sandbox (e.g. date, ls, uname, curl).\n"
+    "- files / fs: read, write, list, check, remove, or create files and directories.\n"
+    "- code_interpreter / interpreter: run code in an isolated interpreter (python, javascript, bash, ...).\n"
+    "- browser: fetch web pages, take screenshots, click, type, evaluate scripts.\n\n"
     "Tool-use rules:\n"
     "1. Use a tool only when it is necessary to answer the user concretely.\n"
     "2. Call tools one at a time and wait for each result before deciding the next step.\n"
@@ -55,7 +55,7 @@ SYSTEM_PROMPT = (
     "   Briefly explain the failure, adjust the parameters only if the fix is clear, otherwise ask the user for guidance.\n"
     "5. Do not perform destructive file or shell operations unless the user explicitly asks for them.\n"
     "6. If the task can be answered without tools, answer directly and keep the response concise.\n"
-    "Do NOT use any tools other than those listed above."
+    "Only call tools that appear in the function-calling schema provided to you."
 )
 
 # Maximum number of tool call rounds to prevent infinite loops
