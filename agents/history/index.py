@@ -44,9 +44,7 @@ async def handler(context: Any):
     """Return conversation history as a list of messages."""
     cid = context.conversation_id
 
-    store = getattr(context, "store", None)
-    if store is None:
-        return {"messages": []}
+    store = context.store
 
     try:
         history = await store.get_messages(cid, limit=100, order="asc")

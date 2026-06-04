@@ -66,12 +66,12 @@ def build_tools(context: Any, logger: Any = None) -> ToolRegistry:
     """
     registry = ToolRegistry()
 
-    runtime_tools = getattr(context, "tools", None)
+    runtime_tools = context.tools
     if logger:
         logger.log(f"[tools] context.tools = {runtime_tools}")
         logger.log(f"[tools] context.tools type = {type(runtime_tools)}")
 
-    if runtime_tools is None or not hasattr(runtime_tools, "all"):
+    if not hasattr(runtime_tools, "all"):
         if logger:
             logger.log("[tools] no EdgeOne platform tools available")
         return registry

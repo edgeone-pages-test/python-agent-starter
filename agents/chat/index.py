@@ -126,7 +126,7 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
     )
 
     # Get platform cancel signal
-    cancel_signal = getattr(context.request, "signal", None) or asyncio.Event()
+    cancel_signal = context.request.signal
 
     headers = {
         "Content-Type": "application/json",

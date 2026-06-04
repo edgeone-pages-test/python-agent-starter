@@ -36,27 +36,18 @@ async def handler(context):
         }
 
     # Call platform runtime's abort mechanism
-    utils = getattr(context, "utils", None)
-    if utils and hasattr(utils, "abort_active_run"):
-        result = utils.abort_active_run(conversation_id)
-        logger.log(
-            "abort_active_run result:",
-            {
-                "aborted": result.aborted,
-                "conversation_id": result.conversation_id,
-                "run_id": result.run_id,
-            },
-        )
-        return {
-            "status": "aborting" if result.aborted else "idle",
-            "conversationId": result.conversation_id or conversation_id,
-            "runId": result.run_id,
+    result = context.utils.abort_active_run(conversation_id)
+    logger.log(
+        "abort_active_run result:",
+        {
             "aborted": result.aborted,
-        }
-
-    # Fallback: if no platform utils available
+            "conversation_id": result.conversation_id,
+            "run_id": result.run_id,
+        },
+    )
     return {
-        "status": "idle",
-        "conversationId": conversation_id,
-        "aborted": False,
+        "status": "aborting" if result.aborted else "idle",
+        "conversationId": result.conversation_id or conversation_id,
+        "runId": result.run_id,
+        "aborted": result.aborted,
     }
