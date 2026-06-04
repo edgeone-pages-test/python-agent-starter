@@ -23,6 +23,12 @@ export default function ChatWindow({ messages, loading }: Props) {
   }, [messages, loading]);
 
   const lastMsg = messages[messages.length - 1];
+  /**
+   * 三点 typing row 只填补"等待第一个 token"的空白。
+   * 一旦助手 bubble 有内容（或自身 activity 子指示器接管），
+   * bubble 内的 streamingCaret 接手"还在干活"信号——避免出现
+   * 同一轮里两个并列的 bot 气泡。
+   */
   const showTypingIndicator = loading && !(lastMsg?.role === 'assistant' && (lastMsg.content.length > 0 || lastMsg.activity));
 
   return (

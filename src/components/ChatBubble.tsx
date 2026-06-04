@@ -83,7 +83,11 @@ export default React.memo(function ChatBubble({ message }: Props) {
         )}
         {isUser
           ? content
-          : content && <div className={styles.markdown}><Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown></div>
+          : content && (
+              <div className={`${styles.markdown} ${message.streaming ? styles.markdownStreaming : ''}`}>
+                <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+              </div>
+            )
         }
         {images.length > 0 && (
           <div className={styles.imageList}>
