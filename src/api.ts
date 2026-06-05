@@ -2,16 +2,16 @@
  * Backend API (EdgeOne Makers — Python)
  *
  * Route mapping (file → route):
- *   agents/chat/index.py      → POST /chat          Main chat entry
- *   agents/chat/stop.py       → POST /chat/stop     Abort active agent run
- *   agents/history/index.py   → POST /history       Get conversation history
- *   agents/chat/_model.py     → (private, not mapped) LLM model config
- *   agents/chat/_session.py   → (private, not mapped) Session persistence
+ *   agents/chat/index.py    → POST /chat          Main chat endpoint (SSE streaming)
+ *   agents/chat/stop.py     → POST /chat/stop     Abort the active agent run
+ *   agents/history/index.py → POST /history       Get conversation history
  *
- * This file centralizes all API paths and request wrappers.
+ * This file defines all API paths and request wrappers. The frontend is
+ * agnostic to backend language — node-starter and python-starter share the
+ * same wire protocol (text_delta / tool_called / image / done / error).
  */
 
-import type { Message } from './types';
+import type { Message, ImageSsePayload } from './types';
 
 export const API = {
   chat: '/chat',
@@ -29,19 +29,13 @@ export interface RawSseEvent {
 export interface StreamCallbacks {
   onTextDelta: (delta: string) => void;
   onToolCalled: (toolName: string) => void;
-  onImage: (base64: string) => void;
+  onImage: (payload: ImageSsePayload) => void;
   onDone: () => void;
   onError: (err: Error) => void;
   onRawEvent?: (event: RawSseEvent) => void;
 }
 
-/**
- * Fetch conversation history from POST /history.
- * Used to restore the chat window after page refresh.
- *
- * The conversation_id is passed via the `makers-conversation-id` header,
- * which the EdgeOne runtime resolves into context.conversation_id on the backend.
- */
+/** Get conversation history for restoring the chat window after page refresh. */
 export async function fetchConversationHistory(conversationId: string): Promise<Message[]> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -54,7 +48,7 @@ export async function fetchConversationHistory(conversationId: string): Promise<
         body: JSON.stringify({}),
       });
 
-      // 409 = same conversation has an active request (React StrictMode double-render), retry
+      // 409 = Active request on same conversation (React StrictMode double-render), retry shortly
       if (res.status === 409) {
         await new Promise(r => setTimeout(r, 500));
         continue;
@@ -68,15 +62,15 @@ export async function fetchConversationHistory(conversationId: string): Promise<
       return [];
     }
   }
+
   return [];
 }
 
 /**
- * Stream messages from POST /chat via SSE.
- * Backend pushes events: text_delta / tool_called / done / error / ping
+ * Stream POST /chat via SSE
+ * Backend pushes events: text_delta / tool_called / image / done / error
  *
- * Returns an AbortController for the caller to cancel the request
- * (or pair with /chat/stop for graceful server-side abort).
+ * Returns an AbortController the caller can use to abort the request (or pair with /chat/stop for graceful abort).
  */
 export function sendMessageStream(
   message: string,
@@ -122,9 +116,8 @@ export function sendMessageStream(
 
         buffer += decoder.decode(value, { stream: true });
 
-        // SSE format: each event is separated by \n\n
+        // SSE format: each event ends with \n\n
         const parts = buffer.split('\n\n');
-        // Last segment may be incomplete — keep it in buffer
         buffer = parts.pop() || '';
 
         for (const part of parts) {
@@ -133,12 +126,10 @@ export function sendMessageStream(
         }
       }
 
-      // Only trigger done as fallback if backend didn't send a done event
       if (!doneReceived) {
         callbacks.onDone();
       }
     } catch (err) {
-      // AbortError should not trigger the error callback
       if (err instanceof DOMException && err.name === 'AbortError') return;
       callbacks.onError(err instanceof Error ? err : new Error(String(err)));
     }
@@ -147,7 +138,7 @@ export function sendMessageStream(
   return ctrl;
 }
 
-/** Parse a single SSE event and dispatch to the appropriate callback */
+/** Parse a single SSE event and dispatch to the corresponding callback */
 function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => void): void {
   let eventType = '';
   let data = '';
@@ -156,7 +147,7 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
     if (line.startsWith('event: ')) {
       eventType = line.slice(7);
     } else if (line.startsWith('data: ')) {
-      data = line.slice(6);
+      data += (data ? '\n' : '') + line.slice(6);
     }
   }
 
@@ -182,7 +173,16 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
         cb.onToolCalled(parsed.tool);
         break;
       case 'image':
-        if (parsed.base64) cb.onImage(parsed.base64);
+        if (typeof parsed?.base64 === 'string' && typeof parsed?.imageId === 'string') {
+          cb.onImage({
+            imageId:    parsed.imageId,
+            base64:     parsed.base64,
+            mimeType:   typeof parsed.mimeType === 'string' ? parsed.mimeType : 'image/png',
+            size:       typeof parsed.size === 'number' ? parsed.size : 0,
+            toolName:   typeof parsed.toolName === 'string' ? parsed.toolName : undefined,
+            toolCallId: typeof parsed.toolCallId === 'string' ? parsed.toolCallId : undefined,
+          });
+        }
         break;
       case 'error':
         cb.onError(new Error(parsed.message || 'agent returned error'));
@@ -205,28 +205,36 @@ function dispatchSseChunk(part: string, cb: StreamCallbacks, markDone: () => voi
 }
 
 /**
- * Request the backend to abort the active agent run.
+ * Request the backend to abort the currently running agent.
  * Maps to agents/chat/stop.py → POST /chat/stop
- *
- * IMPORTANT: The stop request must NOT carry the same
- * `makers-conversation-id` header as the chat request,
- * otherwise the runtime overwrites the chat's cancel signal.
- * The target conversation_id is passed only via body.
  */
 export async function stopAgent(conversationId?: string): Promise<boolean> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
+    /**
+     * EdgeOne agents/ runtime requires Markers-Conversation-Id on every
+     * agents/* request (since 2026-06-05 platform upgrade) — without it
+     * the runtime returns 400 (`AGENT_CONVERSATION_ID_REQUIRED`) before
+     * the handler runs.
+     *
+     * Earlier comments in this codebase warned that adding the header on
+     * /stop would overwrite chat's abort signal slot. The new runtime is
+     * expected to no longer have that bug; if you observe stop succeeding
+     * but chat not actually aborting, revisit this and use a different
+     * cancellation channel.
+     */
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (conversationId) {
+      headers['makers-conversation-id'] = conversationId;
+    }
     const res = await fetch(API.chatStop, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ conversation_id: conversationId }),
-      signal: controller.signal,
     });
     return res.ok;
   } catch {
     return false;
-  } finally {
-    clearTimeout(timeout);
   }
 }

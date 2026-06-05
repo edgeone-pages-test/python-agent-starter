@@ -30,14 +30,16 @@ import httpx
 from .._model import MODEL_CONFIG, ssl_verify
 from .._logger import create_logger
 from .._session import ChatSession
-from .._tools import build_tools, ToolRegistry
+from .._tools import build_tools, ToolRegistry, _stringify_result
 from ._stream import LlmRoundResult, sse_event, stream_llm_round, safe_json_preview
+from ._images import extract_images_from_tool_result
 
 
 logger = create_logger("chat")
 
 SYSTEM_PROMPT = (
-    "You are a helpful assistant running inside an EdgeOne sandbox environment.\n"
+    "You are an EdgeOne Makers Python starter example: an out-of-the-box Agent template that helps developers quickly run through and validate platform capabilities. This template shows how to call an OpenAI-compatible Chat Completions API directly with raw `httpx`, no agent SDK.\n"
+    "When introducing yourself, clearly say that you are a demo Agent built with raw Python (no SDK, just OpenAI-compatible httpx + function calling) on EdgeOne Makers, designed to showcase tool calling, streaming responses, and session memory for developers.\n"
     "The runtime exposes a set of platform tools via function calling — their exact\n"
     "names, descriptions, and parameter schemas are provided alongside this message.\n"
     "Read each tool's schema before calling it; do not assume names or parameters.\n\n"
@@ -250,17 +252,47 @@ async def handler(context: Any) -> AsyncGenerator[str, None]:
                     results = []
                     for tc_item in tool_calls:
                         started_at = time.perf_counter()
-                        result = await tool_registry.execute(tc_item["name"], tc_item["arguments"])
+
+                        # Pull the RAW handler value so we can sniff for base64
+                        # images BEFORE serialization. Anything we find is
+                        # replaced with a `[image:<id>]` placeholder; the
+                        # redacted structure is what flows back into the
+                        # model context (next chat-completions round).
+                        raw = await tool_registry.execute_raw(
+                            tc_item["name"], tc_item["arguments"]
+                        )
+                        extraction = extract_images_from_tool_result(raw)
+                        result = _stringify_result(extraction.redacted_result)
                         duration_ms = int((time.perf_counter() - started_at) * 1000)
                         results.append(result)
-                        yield sse_event("tool_debug", {
+
+                        # SSE ordering contract: image events fire AFTER
+                        # tool_debug{phase:'call'} (already emitted at line
+                        # ~233 above) and BEFORE tool_debug{phase:'result'}.
+                        # The frontend uses this to attach images to the
+                        # in-flight tool row.
+                        for img in extraction.images:
+                            yield sse_event("image", {
+                                "imageId": img.image_id,
+                                "base64": img.base64,
+                                "mimeType": img.mime_type,
+                                "size": img.size,
+                                "toolName": tc_item["name"],
+                                "toolCallId": tc_item["id"],
+                            })
+
+                        debug_payload: dict[str, Any] = {
                             "phase": "result",
                             "tool": tc_item["name"],
                             "id": tc_item["id"],
                             "resultPreview": safe_json_preview(result, 2000),
                             "resultLength": len(result),
                             "durationMs": duration_ms,
-                        })
+                            "imageCount": len(extraction.images),
+                        }
+                        if extraction.truncated:
+                            debug_payload["imagesTruncated"] = True
+                        yield sse_event("tool_debug", debug_payload)
                     for ts, result in zip(tool_spans, results):
                         ts.set_attributes({"tool.result_length": len(result)})
                 finally:

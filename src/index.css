@@ -5,104 +5,118 @@
 }
 
 :root {
-  --bg-base: #0a0a0f;
-  --bg-surface: #111118;
-  --bg-elevated: #18181f;
-  --bg-border: #2a2a38;
+  /* ── Desktop palette (light background outside the window) ──── */
+  --desk-bg-1:      #eceff3;     /* base */
+  --desk-bg-2:      #d8dde6;     /* gradient end */
+  --desk-shadow:    0 30px 80px -20px rgba(15, 18, 30, 0.35),
+                    0 12px 32px -8px rgba(15, 18, 30, 0.18),
+                    0 0 0 1px rgba(15, 18, 30, 0.08);
+  --desk-radius:    12px;
 
-  --text-primary: #f0f0f8;
-  --text-secondary: #8888aa;
-  --text-muted: #44445a;
+  /* ── Terminal palette ───────────────────────────────────────── */
+  --term-bg:        #0b0b0d;
+  --term-bg-alt:    #111114;
+  --term-fg:        #e8e1cf;     /* main foreground */
+  --term-dim:       #8a8170;     /* timestamps / done lines */
+  --term-amber:     #ffb000;     /* prompt / user echo */
+  --term-amber-2:   #ffd277;     /* tool name highlight */
+  --term-cyan:      #7ec7e2;     /* shell $ glyph */
+  --term-green:     #87d96c;     /* success / done */
+  --term-red:       #ff6e6e;     /* error / ^C */
+  --term-violet:    #c39bff;     /* image / verbose-mode event type */
 
-  --accent-gold: #f5c842;
-  --accent-gold-dim: #f5c84230;
-  --accent-gold-glow: #f5c84260;
+  /* CRT phosphor glow — kept very subtle */
+  --term-shadow:    rgba(255, 176, 0, 0.18);
+  --term-glow-sm:   0.25em;
+  --term-glow-md:   0.45em;
+  --term-rule:      rgba(255, 255, 255, 0.07);
 
-  --user-bubble: #1e1e2e;
-  --user-border: #3a3a5a;
-  --bot-bubble: #151520;
-  --bot-border: #252535;
+  --term-font: 'JetBrains Mono', 'IBM Plex Mono', 'Geist Mono',
+               ui-monospace, SFMono-Regular, Menlo, Consolas,
+               'DM Mono', monospace;
+  --term-line-h: 1.55;
+  --term-fs:     14px;
 
-  --font-display: 'Syne', sans-serif;
-  --font-mono: 'DM Mono', monospace;
-
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
-
-  --shadow-card: 0 8px 40px rgba(0,0,0,0.5);
-  --transition-fast: 140ms cubic-bezier(.4,0,.2,1);
-  --transition-med: 280ms cubic-bezier(.4,0,.2,1);
+  /* legacy aliases — still referenced by ErrorBoundary inline styles
+     and the language toggle classes. Keep until those are scrubbed. */
+  --bg-base: var(--desk-bg-1);
+  --text-primary: var(--term-fg);
+  --text-muted: var(--term-dim);
+  --accent-gold: var(--term-amber);
+  --accent-gold-glow: var(--term-shadow);
+  --font-mono: var(--term-font);
 }
 
 html, body, #root {
   height: 100%;
   width: 100%;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
+  /* Soft desktop wash: cool light grey with a hint of depth */
+  background:
+    radial-gradient(ellipse at 20% 10%, #f6f8fb 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 90%, #cbd2dc 0%, transparent 60%),
+    linear-gradient(135deg, var(--desk-bg-1) 0%, var(--desk-bg-2) 100%);
+  color: var(--term-fg);
+  font-family: var(--term-font);
+  font-size: var(--term-fs);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
 
-/* scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+/* selection highlight in terminal style */
+::selection {
+  background: rgba(255, 176, 0, 0.25);
+  color: var(--term-fg);
+}
 
-/* Language toggle */
+/* webkit scrollbar — thin amber-tinted */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--term-rule);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--term-dim); }
+
+/* ── Language toggle (used inside ReplShell topbar) ─────────── */
 .lang-toggle {
-  position: fixed;
-  top: 14px;
-  right: 18px;
-  z-index: 1000;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: none;
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--term-rule);
+  background: transparent;
   cursor: pointer;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  font-family: var(--term-font);
   line-height: 1;
+  transition: background 200ms ease, border-color 200ms ease;
 }
 .lang-toggle:hover {
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 20px rgba(245, 200, 66, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--term-dim);
 }
 .lang-toggle:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 .lang-toggle__label {
   display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 12px;
+  font-family: var(--term-font);
+  font-size: 11px;
   font-weight: 400;
-  color: var(--text-muted);
-  transition: font-size 0.35s cubic-bezier(.4, 0, .2, 1),
-              color 0.35s cubic-bezier(.4, 0, .2, 1),
-              font-weight 0.35s cubic-bezier(.4, 0, .2, 1),
-              transform 0.35s cubic-bezier(.4, 0, .2, 1),
-              text-shadow 0.35s ease;
-  transform: scale(0.9);
+  color: var(--term-dim);
+  transition: color 200ms ease, font-weight 200ms ease, text-shadow 200ms ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .lang-toggle__label--active {
-  font-size: 14px;
   font-weight: 700;
-  color: var(--accent-gold);
-  transform: scale(1);
-  text-shadow: 0 0 12px var(--accent-gold-glow);
+  color: var(--term-amber);
+  text-shadow: 0 0 var(--term-glow-sm) var(--term-shadow);
 }
 .lang-toggle__sep {
-  font-family: var(--font-mono);
+  font-family: var(--term-font);
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--term-dim);
   opacity: 0.4;
   margin: 0 3px;
   user-select: none;

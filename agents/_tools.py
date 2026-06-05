@@ -34,10 +34,30 @@ class ToolRegistry:
         self._use_kwargs[name] = _should_call_with_kwargs(handler)
 
     async def execute(self, name: str, arguments: str) -> str:
-        """Execute a tool by name with JSON string arguments."""
+        """Execute a tool by name with JSON string arguments. Returns a string
+        suitable for stuffing into a `role: 'tool'` message.
+
+        Implementation: thin wrapper over execute_raw + _stringify_result. Kept
+        as a separate convenience entry so existing callers don't need to
+        change shape; new image-extraction code in chat/index.py uses
+        execute_raw directly so it can sniff for base64 BEFORE serialization.
+        """
+        raw = await self.execute_raw(name, arguments)
+        return _stringify_result(raw)
+
+    async def execute_raw(self, name: str, arguments: str) -> Any:
+        """Like `execute` but returns the handler's RAW value (or a structured
+        error dict) without serialization.
+
+        Why: lets callers inspect the result for embedded base64 images BEFORE
+        stringification, so images can be lifted out of the tool message
+        before it ever flows into the next chat-completions round (where
+        multi-MB base64 strings would otherwise burn tokens and break the
+        context window).
+        """
         handler = self._handlers.get(name)
         if handler is None:
-            return json.dumps({"error": f"Unknown tool: {name}"}, ensure_ascii=False)
+            return {"error": f"Unknown tool: {name}"}
 
         try:
             args = json.loads(arguments) if arguments else {}
@@ -53,9 +73,9 @@ class ToolRegistry:
             if inspect.isawaitable(result):
                 result = await result
 
-            return _stringify_result(result)
+            return result
         except Exception as e:
-            return json.dumps({"error": f"Tool execution failed: {str(e)}"}, ensure_ascii=False)
+            return {"error": f"Tool execution failed: {str(e)}"}
 
 
 def build_tools(context: Any, logger: Any = None) -> ToolRegistry:
