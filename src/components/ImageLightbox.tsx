@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useT } from '../i18n';
 import styles from './ImageLightbox.module.css';
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
  *    so only clicks in the padded margin around the image trigger close.
  */
 export default function ImageLightbox({ url, alt, onClose }: Props) {
+  const { t } = useT();
   const ref = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function ImageLightbox({ url, alt, onClose }: Props) {
               e.stopPropagation();
               onClose();
             }}
-            aria-label="Close image preview"
+            aria-label={t("aria.closeImagePreview")}
           >
             ×
           </button>

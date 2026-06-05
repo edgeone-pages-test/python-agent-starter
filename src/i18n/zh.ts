@@ -68,6 +68,9 @@ const zh = {
 
   // ─── Pending caret (between submit and first agent output) ───────────
   "repl.status.thinking": "思考中…",
+
+  // ─── Aria labels ─────────────────────────────────────────────────────
+  "aria.closeImagePreview": "关闭图片预览",
 } as const;
 
 export default zh;

@@ -68,6 +68,9 @@ const en = {
 
   // ─── Pending caret (between submit and first agent output) ───────────
   "repl.status.thinking": "thinking…",
+
+  // ─── Aria labels ─────────────────────────────────────────────────────
+  "aria.closeImagePreview": "Close image preview",
 } as const;
 
 export default en;
