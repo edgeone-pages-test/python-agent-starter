@@ -2,9 +2,9 @@
  * Backend API (EdgeOne Makers — Python)
  *
  * Route mapping (file → route):
- *   agents/chat/index.py    → POST /chat          Main chat endpoint (SSE streaming)
- *   agents/chat/stop.py     → POST /chat/stop     Abort the active agent run
- *   agents/history/index.py → POST /history       Get conversation history
+ *   agents/chat/index.py             → POST /chat          Main chat endpoint (SSE streaming)
+ *   agents/chat/stop.py              → POST /chat/stop     Abort the active agent run
+ *   cloud-functions/history/index.py → POST /history       Get conversation history (stateless cloud function)
  *
  * This file defines all API paths and request wrappers. The frontend is
  * agnostic to backend language — node-starter and python-starter share the

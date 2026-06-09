@@ -56,14 +56,16 @@ Local agent metrics & traces are exposed at `http://localhost:8080/agent-metrics
 
 ```text
 python-starter/
-├── agents/                          # Python backend (EdgeOne Makers Agent Functions)
+├── agents/                          # Python backend (EdgeOne Makers Agent Functions, stateful)
 │   ├── chat/index.py               # POST /chat — SSE streaming chat with tool loop
 │   ├── chat/stop.py                # POST /chat/stop — abort active run
-│   ├── history/index.py            # POST /history — conversation history
 │   ├── _model.py                   # LLM model config (private)
 │   ├── _logger.py                  # Logger utility (private)
 │   ├── _session.py                 # Session adapter over context.store (private)
 │   └── _tools.py                   # EdgeOne tool registry (private)
+├── cloud-functions/                 # Python backend (EdgeOne Pages Python cloud functions, stateless)
+│   ├── history/index.py            # POST /history — conversation history
+│   └── _logger.py                  # Logger utility (private)
 ├── src/                             # React + Vite + TypeScript frontend
 │   ├── App.tsx                     # Main app + SSE stream lifecycle
 │   ├── api.ts                      # /chat, /chat/stop, /history wrappers

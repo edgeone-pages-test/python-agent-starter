@@ -56,14 +56,16 @@ edgeone makers dev
 
 ```text
 python-starter/
-├── agents/                          # Python 后端（EdgeOne Makers Agent Functions）
+├── agents/                          # Python 后端（EdgeOne Makers Agent Functions，有状态）
 │   ├── chat/index.py               # POST /chat —— SSE 流式聊天 + 工具循环
 │   ├── chat/stop.py                # POST /chat/stop —— 中断当前 agent
-│   ├── history/index.py            # POST /history —— 对话历史
 │   ├── _model.py                   # LLM 模型配置（私有）
 │   ├── _logger.py                  # 日志工具（私有）
 │   ├── _session.py                 # 基于 context.store 的会话适配（私有）
 │   └── _tools.py                   # EdgeOne 工具注册表（私有）
+├── cloud-functions/                 # Python 后端（EdgeOne Pages Python cloud functions，无状态）
+│   ├── history/index.py            # POST /history —— 对话历史
+│   └── _logger.py                  # 日志工具（私有）
 ├── src/                             # React + Vite + TypeScript 前端
 │   ├── App.tsx                     # 主应用 + SSE 流生命周期管理
 │   ├── api.ts                      # /chat、/chat/stop、/history 接口封装
