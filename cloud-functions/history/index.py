@@ -9,7 +9,7 @@ Reads conversation history from `self.context.agent.store.get_messages()`
 and returns it to the frontend so the chat window can be restored after a
 page refresh. This route lives in cloud-functions/ (stateless) rather than
 agents/ (stateful) so it doesn't compete with the active /chat SSE stream
-for the per-conversation lock.
+for runtime resources.
 """
 
 import json
