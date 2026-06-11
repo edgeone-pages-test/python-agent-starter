@@ -8,6 +8,7 @@ import ReplStream from './components/repl/ReplStream';
 import ReplPrompt from './components/repl/ReplPrompt';
 import ImageLightbox from './components/ImageLightbox';
 import GitHubLink from './components/GitHubLink';
+import DeployLink from './components/DeployLink';
 import {
   makeDone,
   makeError,
@@ -594,6 +595,7 @@ export default function App() {
     <I18nProvider>
       <AppInner />
       <GitHubLink />
+      <DeployLink />
     </I18nProvider>
   );
 }
