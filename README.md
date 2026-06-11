@@ -40,7 +40,7 @@ The built-in `@makers/deepseek-v4-flash` model is free with a usage cap and is s
 
 ### How to get `WSA_API_KEY`
 
-`WSA_API_KEY` is only needed if you call the web-search tool. Apply for one on the [Tencent Cloud Web Search Agent product page](https://cloud.tencent.com/product/wsa), then copy the issued key into `WSA_API_KEY`.
+`WSA_API_KEY` is only needed if you call the web-search tool. Apply for one on the [Tencent Cloud Web Search Agent product page](https://pages.edgeone.ai/document/sandbox-network-search-tool), then copy the issued key into `WSA_API_KEY`.
 
 ## Local Development
 

@@ -40,7 +40,7 @@
 
 ### 如何获取 `WSA_API_KEY`
 
-`WSA_API_KEY` 仅在调用联网搜索工具时需要。前往 [腾讯云 Web Search Agent 产品页](https://cloud.tencent.com/product/wsa) 申请开通，将下发的 Key 填入 `WSA_API_KEY` 即可。
+`WSA_API_KEY` 仅在调用联网搜索工具时需要，参考 [文档](https://pages.edgeone.ai/document/sandbox-network-search-tool)。
 
 ## 本地开发
 
