@@ -4,7 +4,7 @@
 
 **Framework：** None (raw Python) · **Category：** Quick Start <!-- TODO: confirm --> · **Language：** Python
 
-[![Deploy to EdgeOne Makers](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/makers/new?template=python-starter-agent&from=within&fromAgent=1&agentLang=python)
+[![Deploy to EdgeOne Makers](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://console.cloud.tencent.com/edgeone/pages/new?template=python-starter-agent)
 
 <!-- ![preview](./assets/preview.png)  TODO: confirm -->
 
