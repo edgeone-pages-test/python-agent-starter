@@ -31,7 +31,7 @@ This template follows the OpenAI-compatible standard — point these at Makers M
 
 ### How to get `AI_GATEWAY_API_KEY`
 
-1. Open the [Makers Console](https://console.cloud.tencent.com/edgeone/makers).
+1. Open the [Makers Console](https://edgeone.ai/makers/new?s_url=https://console.tencentcloud.com/edgeone/makers).
 2. Sign in and enable Makers.
 3. Go to **Makers → Models → API Key** and create a key.
 4. Copy it into `AI_GATEWAY_API_KEY`.
@@ -40,7 +40,7 @@ The built-in `@makers/deepseek-v4-flash` model is free with a usage cap and is s
 
 ### How to get `WSA_API_KEY`
 
-`WSA_API_KEY` is only needed if you call the web-search tool. Apply for one on the [Tencent Cloud Web Search Agent product page](https://pages.edgeone.ai/document/sandbox-network-search-tool), then copy the issued key into `WSA_API_KEY`.
+`WSA_API_KEY` is only needed when calling the web-search tool. See the [documentation](https://pages.edgeone.ai/document/sandbox-network-search-tool).
 
 ## Local Development
 
